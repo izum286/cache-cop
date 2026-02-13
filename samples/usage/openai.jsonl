@@ -1,0 +1,4 @@
+{"provider":"openai","model":"gpt-5.2","route":"responses-api","request_id":"req_2026_05_openai_cold","usage":{"input_tokens":5400,"input_tokens_details":{"cached_tokens":0},"output_tokens":380},"prefix_hash":"openai-policy-2026q2"}
+{"provider":"openai","model":"gpt-5.2","route":"responses-api","request_id":"req_2026_05_openai_warm_1","usage":{"input_tokens":5400,"input_tokens_details":{"cached_tokens":4800},"output_tokens":410},"prefix_hash":"openai-policy-2026q2"}
+{"provider":"openai","model":"gpt-5.2","route":"responses-api","request_id":"req_2026_05_openai_warm_2","usage":{"input_tokens":5400,"input_tokens_details":{"cached_tokens":4900},"output_tokens":395},"prefix_hash":"openai-policy-2026q2"}
+{"provider":"openai","model":"gpt-5.2","route":"responses-api","request_id":"req_2026_05_openai_warm_3","usage":{"input_tokens":5400,"input_tokens_details":{"cached_tokens":4850},"output_tokens":420},"prefix_hash":"openai-policy-2026q2"}
