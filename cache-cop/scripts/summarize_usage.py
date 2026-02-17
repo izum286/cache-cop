@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""Crunch provider usage logs into one cache-hit summary.
-
-Early version: OpenAI + Anthropic field aliases only.
-"""
+"""Crunch provider usage logs into one cache-hit summary."""
 
 import argparse
 import csv
@@ -15,19 +12,29 @@ FIELD_ALIASES = {
     "input_tokens": (
         "input_tokens",
         "prompt_tokens",
+        "InputTokens",
+        "inputTokenCount",
     ),
     "cached_tokens": (
         "cached_tokens",
+        "prompt_cache_hit_tokens",
     ),
     "cache_read_input_tokens": (
         "cache_read_input_tokens",
+        "cache_read_tokens",
+        "CacheReadInputTokens",
     ),
     "cache_creation_input_tokens": (
         "cache_creation_input_tokens",
+        "cache_write_input_tokens",
+        "cache_write_tokens",
+        "CacheWriteInputTokens",
     ),
     "output_tokens": (
         "output_tokens",
         "completion_tokens",
+        "OutputTokens",
+        "outputTokenCount",
     ),
 }
 
@@ -37,13 +44,23 @@ def main(argv=None):
         description="Crunch provider usage logs into one cache-hit summary."
     )
     parser.add_argument("path", help="Path to a JSON, JSONL, or CSV usage log.")
+    parser.add_argument(
+        "--jsonl-normalized",
+        action="store_true",
+        help="Stream one normalized event per record as JSONL instead of the summary.",
+    )
     args = parser.parse_args(argv)
     records = read_records(Path(args.path))
+    if args.jsonl_normalized:
+        for event in normalized_events(records):
+            print(json.dumps(event, ensure_ascii=False, sort_keys=True))
+        return 0
     print(json.dumps(summarize(records), ensure_ascii=False, indent=2))
     return 0
 
 
 def summarize(records):
+    """Roll a list of provider usage records into one cache-hit report."""
     rows = [normalize_record(entry) for entry in records]
     aggregated = {
         "records": len(rows),
@@ -58,6 +75,11 @@ def summarize(records):
     }
     reuse_tokens = aggregated["cached_tokens"] + aggregated["cache_read_input_tokens"]
     aggregated["cache_hit_ratio"] = ratio(reuse_tokens, aggregated["total_input_tokens"])
+    aggregated["cache_write_read_ratio"] = ratio(
+        aggregated["cache_creation_input_tokens"],
+        aggregated["cache_read_input_tokens"],
+        default=None,
+    )
     aggregated["output_share"] = ratio(
         aggregated["output_tokens"],
         aggregated["total_input_tokens"] + aggregated["output_tokens"],
@@ -66,6 +88,7 @@ def summarize(records):
 
 
 def normalize_record(record):
+    """Pull token counts out of a raw provider record via FIELD_ALIASES."""
     counts = {
         metric: find_first_number(record, aliases)
         for metric, aliases in FIELD_ALIASES.items()
@@ -84,7 +107,33 @@ def normalize_record(record):
     return counts
 
 
+def normalize_event(record, index):
+    """Pair token counts with identifying metadata for JSONL streaming."""
+    counts = normalize_record(record)
+    return {
+        "index": index,
+        "provider": infer_provider(record),
+        "model": metadata_value(record, "model"),
+        "route": metadata_value(record, "route"),
+        "request_id": metadata_value(record, "request_id"),
+        "prefix_hash": metadata_value(record, "prefix_hash"),
+        "input_tokens": counts["input_tokens"],
+        "cached_tokens": counts["cached_tokens"],
+        "cache_read_input_tokens": counts["cache_read_input_tokens"],
+        "cache_creation_input_tokens": counts["cache_creation_input_tokens"],
+        "cache_benefit_tokens": counts["cached_tokens"]
+        + counts["cache_read_input_tokens"],
+        "total_input_tokens": counts["total_input_tokens"],
+        "output_tokens": counts["output_tokens"],
+    }
+
+
+def normalized_events(records):
+    return [normalize_event(entry, idx) for idx, entry in enumerate(records)]
+
+
 def read_records(path):
+    """Read records from .csv, .json, or .jsonl. Returns a list of dicts."""
     path = Path(path)
     suffix = path.suffix.lower()
     if suffix == ".csv":
@@ -98,6 +147,8 @@ def read_records(path):
     payload = json.loads(text)
     if isinstance(payload, list):
         return payload
+    if isinstance(payload, dict) and isinstance(payload.get("data"), list):
+        return payload["data"]
     return [payload]
 
 
@@ -134,6 +185,32 @@ def number(value):
         return int(float(value))
     except (TypeError, ValueError):
         return 0
+
+
+def metadata_value(record, name):
+    if not isinstance(record, dict):
+        return None
+    value = record.get(name)
+    if isinstance(value, (str, int, float)):
+        return value
+    return None
+
+
+def infer_provider(record):
+    """Guess provider name from explicit field or telltale token-field names."""
+    provider = record.get("provider") if isinstance(record, dict) else None
+    if isinstance(provider, str) and provider:
+        return provider
+    text = json.dumps(record, ensure_ascii=False)
+    if "CacheReadInputTokens" in text or "CacheWriteInputTokens" in text:
+        return "bedrock"
+    if "cache_read_input_tokens" in text or "cache_creation_input_tokens" in text:
+        return "anthropic-compatible"
+    if "prompt_cache_hit_tokens" in text:
+        return "deepseek-compatible"
+    if "cached_tokens" in text:
+        return "openai-compatible"
+    return "unknown"
 
 
 if __name__ == "__main__":
