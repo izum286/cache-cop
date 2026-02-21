@@ -17,6 +17,7 @@ SAMPLE_DIR = REPO / "samples"
 USAGE_DIR = SAMPLE_DIR / "usage"
 REQUEST_DIR = SAMPLE_DIR / "requests"
 SNAPSHOT_DIR = SAMPLE_DIR / "snapshots"
+VALIDATOR = HERE.parent / "validate_skill.py"
 PROVIDERS = ("openai", "anthropic")
 
 
@@ -41,6 +42,12 @@ def snapshot_file(provider, name):
 class ScriptCase(unittest.TestCase):
     def invoke(self, script, *args):
         cmd = [sys.executable, str(SCRIPT_DIR / script), *map(str, args)]
+        return subprocess.run(
+            cmd, cwd=REPO, text=True, capture_output=True, check=False
+        )
+
+    def invoke_validator(self, target):
+        cmd = [sys.executable, str(VALIDATOR), str(target)]
         return subprocess.run(
             cmd, cwd=REPO, text=True, capture_output=True, check=False
         )
@@ -208,6 +215,13 @@ class LintRequestTest(ScriptCase):
     def test_good_chat_fixture_is_clean(self):
         payload = self.expect_ok(self.invoke("lint_request.py", REQUEST_DIR / "chat-good.json"))
         self.assertEqual(payload["status"], "ok")
+
+
+class ValidateSkillTest(ScriptCase):
+    def test_real_cache_cop_package_passes_all_checks(self):
+        payload = self.expect_ok(self.invoke_validator(REPO / "cache-cop"))
+        self.assertEqual(payload["status"], "ok")
+        self.assertEqual(payload["validation"]["errors"], [])
 
 
 if __name__ == "__main__":
