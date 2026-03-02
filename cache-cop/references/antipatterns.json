@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "antipatterns": [
+    {
+      "ruleId": "RT-02",
+      "domain": "routing",
+      "severity": "medium",
+      "description": "Parallel fan-out fires before the shared prefix is warm or visible to the cache.",
+      "detection": "Compare cache telemetry for a safe warm-up sequence against an immediate parallel fan-out."
+    },
+    {
+      "ruleId": "PS-04",
+      "domain": "prefix-stability",
+      "severity": "high",
+      "description": "Compaction, truncation, or summarization edits early conversation messages in place.",
+      "detection": "Verify the system block, tools, and the earliest stable anchor messages survive context management byte-for-byte."
+    },
+    {
+      "ruleId": "AG-01",
+      "domain": "agent-loop",
+      "severity": "high",
+      "description": "A dynamic tool set inside an agent loop rewrites early prompt content between steps.",
+      "detection": "For each agent step, log tools_count, sorted tool-name hash, prefix hash, and cache usage fields."
+    },
+    {
+      "ruleId": "CL-01",
+      "domain": "cache-lifetime",
+      "severity": "medium",
+      "description": "Cache TTL, eviction behavior, or KV capacity does not match the request cadence.",
+      "detection": "Correlate TTL, reuse cadence, KV pressure, eviction metrics, and warm-call TTFT."
+    },
+    {
+      "ruleId": "PS-01",
+      "domain": "prefix-stability",
+      "severity": "high",
+      "description": "Volatile content sits ahead of the reusable prompt prefix.",
+      "detection": "Render a representative spread of requests and verify the cacheable prefix hash stays identical across users, timestamps, and request IDs."
+    },
+    {
+      "ruleId": "EX-01",
+      "domain": "experiments",
+      "severity": "medium",
+      "description": "Experiments, prompt variants, model settings, or router rules splinter reuse into tiny cache families.",
+      "detection": "Bucket cache metrics by prompt version, model parameters, route, provider, and experiment arm."
+    },
+    {
+      "ruleId": "RT-01",
+      "domain": "routing",
+      "severity": "high",
+      "description": "Stable prefixes get routed across replicas, regions, or providers without cache locality.",
+      "detection": "Track cache reads and TTFT broken down by route, provider, region, and replica per prefix family."
+    },
+    {
+      "ruleId": "PS-03",
+      "domain": "prefix-stability",
+      "severity": "medium",
+      "description": "Template, whitespace, media, or SDK-path drift quietly mutates the effective prefix.",
+      "detection": "Diff raw rendered payloads from every code path and pin one canonical renderer for the cacheable prefix."
+    },
+    {
+      "ruleId": "CL-02",
+      "domain": "cache-lifetime",
+      "severity": "medium",
+      "description": "Per-request salts or security isolation fragment otherwise shareable prefixes.",
+      "detection": "Document the intended trust boundary and estimate the cache-efficiency cost of the chosen isolation level."
+    },
+    {
+      "ruleId": "AG-02",
+      "domain": "agent-loop",
+      "severity": "medium",
+      "description": "Mode switching or framework-injected metadata silently rewrites the cacheable prefix.",
+      "detection": "Compare prefix hashes before and after a mode flip and trace where dynamic metadata lands."
+    },
+    {
+      "ruleId": "PS-02",
+      "domain": "prefix-stability",
+      "severity": "high",
+      "description": "Tool definitions, schemas, or serialized JSON shift between calls that should otherwise reuse cache.",
+      "detection": "Sort tools and schemas in a deterministic order, then byte-diff rendered request payloads — or hash them canonically — across repeated calls."
+    }
+  ]
+}
