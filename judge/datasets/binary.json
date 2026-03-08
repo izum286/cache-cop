@@ -1,0 +1,322 @@
+[
+  {
+    "query": "OpenAI Responses API shows cached_tokens=0 even with an 8k system prompt repeated every call.",
+    "should_trigger": true
+  },
+  {
+    "query": "Switching prompt_cache_retention between 24h and in_memory shifts our OpenAI cache hit pattern.",
+    "should_trigger": true
+  },
+  {
+    "query": "Our OpenAI prompt_cache_key gets hot; hit rate sags past ~15 RPM.",
+    "should_trigger": true
+  },
+  {
+    "query": "Need an audit of OpenAI extended prompt caching with Zero Data Retention and Data Residency on.",
+    "should_trigger": true
+  },
+  {
+    "query": "Skim the latest OpenAI prompt-caching docs and tell us what to change.",
+    "should_trigger": true
+  },
+  {
+    "query": "cached_tokens is high but TPM rate-limits didn't budge on OpenAI.",
+    "should_trigger": true
+  },
+  {
+    "query": "Find the latest OpenAI model and update our model string.",
+    "should_trigger": false
+  },
+  {
+    "query": "Claude cache_control writes cache_creation_input_tokens each request but cache_read_input_tokens never moves.",
+    "should_trigger": true
+  },
+  {
+    "query": "Claude cache_read_input_tokens and cache_creation_input_tokens are both zero — we forgot to set cache_control.",
+    "should_trigger": true
+  },
+  {
+    "query": "Claude's automatic top-level cache_control writes cache every call but reads stay flat because the last user block keeps changing.",
+    "should_trigger": true
+  },
+  {
+    "query": "Claude prompt caching stopped hitting once our conversation grew past the previous breakpoint by 20+ blocks.",
+    "should_trigger": true
+  },
+  {
+    "query": "Mixing 1h after 5m TTL in Anthropic cache_control is rejected, and the cache_creation details look off.",
+    "should_trigger": true
+  },
+  {
+    "query": "Claude extended thinking blocks alongside tool results are changing cache_read_input_tokens behavior.",
+    "should_trigger": true
+  },
+  {
+    "query": "Claude extended thinking blocks placed after a cache_control=1h prefix cause cache_read_input_tokens to drop on the next turn.",
+    "should_trigger": true
+  },
+  {
+    "query": "We hit Anthropic's 4 cache_control breakpoint limit when adding a tool-result block; restructure the layout for reuse.",
+    "should_trigger": true
+  },
+  {
+    "query": "Migrating a Claude cache_control RAG prompt to Cohere Command R+ — what cache-parity should we expect?",
+    "should_trigger": true
+  },
+  {
+    "query": "Azure OpenAI cached_tokens stays 0 on repeated prompts; one request also sits below the cache threshold.",
+    "should_trigger": true
+  },
+  {
+    "query": "Explain Azure identity and access management for a storage account.",
+    "should_trigger": false
+  },
+  {
+    "query": "Bedrock CacheWriteInputTokens is sky-high but CacheReadInputTokens stays at zero for repeated cachePoint prompts.",
+    "should_trigger": true
+  },
+  {
+    "query": "Review our Bedrock Converse cachePoint placement across system messages and tools.",
+    "should_trigger": true
+  },
+  {
+    "query": "OpenRouter shows cache_write_tokens nonzero but cached_tokens stays at 0 after we added provider.order.",
+    "should_trigger": true
+  },
+  {
+    "query": "Repeated long prompts on OpenRouter with openrouter/auto don't reuse prompt cache.",
+    "should_trigger": true
+  },
+  {
+    "query": "Audit OpenRouter prompt caching with top-level cache_control, provider.only, and ZDR turned on.",
+    "should_trigger": true
+  },
+  {
+    "query": "OpenRouter's context-compression plugin may be reshaping the cacheable prefix before the provider sees it.",
+    "should_trigger": true
+  },
+  {
+    "query": "Explain OpenRouter model routing basics for a beginner — no prompt caching or cost angle.",
+    "should_trigger": false
+  },
+  {
+    "query": "Gemini implicit cache looks random for recurring long-document prompts; help decide whether to switch to explicit CachedContent.",
+    "should_trigger": true
+  },
+  {
+    "query": "Gemini implicit caching is on but usage_metadata cached tokens stays at 0 for repeated long contexts.",
+    "should_trigger": true
+  },
+  {
+    "query": "Vertex AI Gemini CachedContent with TTL of 1 hour shows zero cache reads after the first call; what are we missing?",
+    "should_trigger": true
+  },
+  {
+    "query": "DashScope Qwen reports cache_creation_input_tokens but almost no cached_tokens — audit context-cache usage.",
+    "should_trigger": true
+  },
+  {
+    "query": "DeepSeek prompt_cache_hit_tokens dropped after we changed tool-schema serialization. Likely causes?",
+    "should_trigger": true
+  },
+  {
+    "query": "OpenAI vision request with identical image and system prompt isn't reusing cached_tokens — does image content participate in prompt caching?",
+    "should_trigger": true
+  },
+  {
+    "query": "The agent got more expensive after we switched to selecting 5 tools per step instead of sending all 40.",
+    "should_trigger": true
+  },
+  {
+    "query": "Pick a strategy among dynamic tool retrieval, allowed_tools, tool_search, and fixed bundles for a 30-step agent.",
+    "should_trigger": true
+  },
+  {
+    "query": "Our agent summarizes early turns and cache reads reset after compaction. Audit the context strategy.",
+    "should_trigger": true
+  },
+  {
+    "query": "Give a quick agent-loop audit for an MCP tool registry that mutates tools each step.",
+    "should_trigger": true
+  },
+  {
+    "query": "Our Claude-Code-style assistant injects cwd, git status, platform, and date ahead of tool definitions. Is that hurting prompt cache?",
+    "should_trigger": true
+  },
+  {
+    "query": "LLM cost climbed after an agent refactor — nobody mentioned prompt caching, but there are repeated long tool loops.",
+    "should_trigger": true
+  },
+  {
+    "query": "Route user questions to specialized agents by topic — no LLM prompt caching involved.",
+    "should_trigger": false
+  },
+  {
+    "query": "Summarize these tool descriptions for a product manager — no agent runtime involved.",
+    "should_trigger": false
+  },
+  {
+    "query": "LiteLLM router strips cache_control headers on some upstream providers; audit which downstream actually sees them.",
+    "should_trigger": true
+  },
+  {
+    "query": "Switched from direct Anthropic to OpenRouter — visible prompt text is identical; review cache and routing risk.",
+    "should_trigger": true
+  },
+  {
+    "query": "Our vLLM self-hosted cluster shows degraded prefill latency for repeated 30k-token system prompts; investigate KV cache hit behavior across worker replicas.",
+    "should_trigger": true
+  },
+  {
+    "query": "SGLang RadixAttention isn't reusing prefix across our batched requests even though the system prompt is byte-identical — diagnose.",
+    "should_trigger": true
+  },
+  {
+    "query": "Multi-tenant inference replicas show uneven KV cache reuse across tenants — review the isolation vs reuse trade-off.",
+    "should_trigger": true
+  },
+  {
+    "query": "Our self-hosted multi-agent workflow keeps evicting useful KV blocks before agents resume after tools.",
+    "should_trigger": true
+  },
+  {
+    "query": "cache_salt is randomized per request and shared prefixes no longer reuse KV cache.",
+    "should_trigger": true
+  },
+  {
+    "query": "Our API gateway round-robins traffic between services, but none of them are LLM inference replicas.",
+    "should_trigger": false
+  },
+  {
+    "query": "Generate Kubernetes YAML for a stateless web app with 4 replicas.",
+    "should_trigger": false
+  },
+  {
+    "query": "Create a Kubernetes Service for a stateless API with no LLM inference behind it.",
+    "should_trigger": false
+  },
+  {
+    "query": "Configure HPA on QPS for our non-LLM REST API behind a load balancer.",
+    "should_trigger": false
+  },
+  {
+    "query": "Estimate the cost of our non-LLM Kubernetes cluster.",
+    "should_trigger": false
+  },
+  {
+    "query": "Write a Docker Compose file for Redis and Postgres.",
+    "should_trigger": false
+  },
+  {
+    "query": "Compare Anthropic and OpenAI pricing for our RAG workload using cache hit rate, static tokens, output tokens, and migration risk.",
+    "should_trigger": true
+  },
+  {
+    "query": "Migrating a cache_control RAG prompt from Claude to OpenAI and cached_tokens degraded.",
+    "should_trigger": true
+  },
+  {
+    "query": "We're at 90% cache hit but the LLM bill barely moved — output tokens may dominate.",
+    "should_trigger": true
+  },
+  {
+    "query": "Calculate effective prompt-cache cost from static, dynamic, and output tokens with a hit rate and cache-write premium.",
+    "should_trigger": true
+  },
+  {
+    "query": "Design cache observability for LLM usage covering prefix_hash, tools_count, cache reads, cache writes, and TTFT.",
+    "should_trigger": true
+  },
+  {
+    "query": "We need a CI smoke test that fails when the cacheable prompt prefix changes unexpectedly.",
+    "should_trigger": true
+  },
+  {
+    "query": "Cache hits cut TTFT but total latency is still high — output decode may dominate.",
+    "should_trigger": true
+  },
+  {
+    "query": "Cache hit drops TTFT but our SSE stream-start latency is unchanged; verify the prefix is actually being reused.",
+    "should_trigger": true
+  },
+  {
+    "query": "Can you review this prompt builder for prefix-cache anti-patterns? It bakes user.company and request_id into the system prompt.",
+    "should_trigger": true
+  },
+  {
+    "query": "Review this prompt layout for a document classifier: system, user question, long shared policy, JSON schema.",
+    "should_trigger": true
+  },
+  {
+    "query": "PR only changes the system-prompt wording for our long shared-policy classifier; check cacheable-prefix stability.",
+    "should_trigger": true
+  },
+  {
+    "query": "We moved the shared policy document after the user question in a recurring RAG request — want a pre-merge cache review.",
+    "should_trigger": true
+  },
+  {
+    "query": "This release changes tool-registry order and response_format serialization in our LLM request builder.",
+    "should_trigger": true
+  },
+  {
+    "query": "Do a cache review.",
+    "should_trigger": true
+  },
+  {
+    "query": "Write a friendly system prompt for a customer-support bot.",
+    "should_trigger": false
+  },
+  {
+    "query": "Rewrite this short greeting prompt to sound warmer — no repeated long context, cache metrics, or latency angle.",
+    "should_trigger": false
+  },
+  {
+    "query": "Count tokens for this prompt and tell me if it fits the context window.",
+    "should_trigger": false
+  },
+  {
+    "query": "Build a simple calculator tool schema for OpenAI function calling.",
+    "should_trigger": false
+  },
+  {
+    "query": "Explain what KV cache means in transformers at a high level for a blog intro.",
+    "should_trigger": false
+  },
+  {
+    "query": "Summarize this conversation history to reduce token usage.",
+    "should_trigger": false
+  },
+  {
+    "query": "Review this JSON schema for correctness and required fields.",
+    "should_trigger": false
+  },
+  {
+    "query": "Explain prompt engineering basics for beginners.",
+    "should_trigger": false
+  },
+  {
+    "query": "Create an A/B test plan for a landing-page headline.",
+    "should_trigger": false
+  },
+  {
+    "query": "Compare tokenizer vocab sizes for two models without touching cache reuse.",
+    "should_trigger": false
+  },
+  {
+    "query": "Speed up our RAG cosine-similarity scoring — embedding index is the bottleneck, no LLM prompt caching involved.",
+    "should_trigger": false
+  },
+  {
+    "query": "Build a training-set generator that samples 10k chat conversations for fine-tuning.",
+    "should_trigger": false
+  },
+  {
+    "query": "Add a --debug flag to our llm CLI that prints raw request/response payloads.",
+    "should_trigger": false
+  },
+  {
+    "query": "Translate this system prompt from English to Spanish, keeping tone consistent.",
+    "should_trigger": false
+  }
+]

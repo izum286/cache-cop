@@ -2,3 +2,9 @@
 __pycache__/
 *.pyc
 *.pyo
+judge/datasets/semantic.csv
+judge/prompts/with-skill.txt
+judge/.promptfoo/
+judge/results/*
+!judge/results/.gitkeep
+judge/node_modules/

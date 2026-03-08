@@ -1,0 +1,6 @@
+datasets/semantic.csv
+prompts/with-skill.txt
+.promptfoo/
+results/*
+!results/.gitkeep
+node_modules/

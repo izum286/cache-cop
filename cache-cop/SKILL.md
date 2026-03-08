@@ -251,11 +251,201 @@ Search: `variant`, `experiment`, `feature_flag`, prompt-version-per-request, var
 Fix: test sequentially where possible; move differences after the stable prefix; bucket by stable route / version and measure each bucket separately rather than mixing into one cache family.
 Verify: each bucket shows its own healthy hit rate; aggregate hit rate makes sense as a weighted sum.
 
+## Audit Playbooks
+
+Use these as starting paths for common support and review requests. Still run Provider Detection and the Freshness Gate before exact claims.
+
+- **OpenAI `cached_tokens=0`**: check prompt length / threshold, first-prefix drift, `responses.create` vs. Chat usage fields, `prompt_cache_key` granularity, `prompt_cache_retention`, output-token dominance, and whether an OpenAI-compatible wrapper is actually in use.
+- **Claude / Bedrock / OpenRouter writes without reads**: distinguish cache creation / write fields from read / hit fields, then inspect cache breakpoint placement, dynamic content before the breakpoint, TTL / retention, model / region / API support, fallback routing, and actual routed provider / model.
+- **Dynamic tools in long agent loops**: compare `tools_count`, sorted tool-name hash, `prefix_hash`, mode state, and cache fields per step. Prefer stable route-level tool bundles, sorted schemas, provider-supported allowed tools / tool search / deferred loading, or self-hosted masking after checking current docs.
+- **High hit rate but no savings**: separate input savings from total cost and final latency. Check output-token share, decode time, external tool time, TPM / rate-limit behavior, and cache read / write pricing assumptions before changing prompt layout.
+- **OpenAI-compatible wrapper ambiguity**: if `base_url`, Azure, OpenRouter, Bedrock, DashScope / Qwen, or another gateway wraps an OpenAI SDK, load the wrapper reference first and do not recommend direct OpenAI-only parameters until the wrapper docs support them.
+- **Self-hosted multi-replica miss**: inspect gateway / service routing, prefix-aware hashing, tokenizer / chat-template drift, `max_model_len`, KV block pressure, eviction metrics, and route / replica-level hit metrics.
+- **New provider docs project-change audit**: compare the new provider facts against current code, references, evals, and tests. Recommend no code change when the project already encodes the behavior or when the fact is not applicable to this provider path.
+
+## Agent Tool Stability
+
+Run these whenever the app is an agent, coding assistant, MCP client, or multi-step workflow.
+
+Per-step logging (minimum):
+
+- `prefix_hash` of canonical `system + tools + response_format + first stable messages`
+- provider cache-read field (`cached_tokens`, `cache_read_input_tokens`)
+- cache creation / write field where available
+- `tools_count` and a sorted tool-name hash
+- prompt version and route
+- TTFT / prefill latency
+- mode state
+- compaction event and strategy
+- output tokens and final-token latency when latency is the symptom
+
+Alert when TTFT climbs on late steps, the prefix hash changes unexpectedly, the tool count shifts inside a long trajectory, or cached tokens reset right after tool selection or compaction.
+
+Diagnostic helper (use HMAC for any fingerprint that escapes the process — production telemetry, tenant-derived hashes):
+
+```python
+import hashlib
+import hmac
+import json
+
+def anchor_digest(*, system, tools=None, response_format=None, early_messages=None, key=b""):
+    """Return a short HMAC-SHA256 fingerprint of the cacheable anchor.
+
+    Pass `key=b""` only for ad-hoc local diagnostics; supply a real key for telemetry.
+    """
+    payload = json.dumps(
+        {
+            "system": system,
+            "tools": tools or [],
+            "response_format": response_format,
+            "early_messages": early_messages or [],
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+    ).encode()
+    mac = hmac.new(key, payload, hashlib.sha256) if key else hashlib.sha256(payload)
+    return mac.hexdigest()[:12]
+```
+
+Its only guardrail, not a provider tokenizer. Provider usage metadata stays authoritative.
+
+## Output Contract
+
+Pick the smallest contract that answers the user's actual question. Don't bury the decision under generic prompt-cache advice.
+
+### Named Contracts
+
+Pick one before writing the answer:
+
+- **Quick triage** — use when artifacts are incomplete. Answer with provider / engine guess, most likely cache blocker, evidence needed next, and one safe next command or artifact request.
+- **Code audit findings** — use when code is available. Lead with a decision summary, then file-line findings in the report format, then clean checks, then verification commands.
+- **Provider migration risk** — use when moving between OpenAI, Anthropic, Bedrock, OpenRouter, Azure OpenAI, Gemini, Qwen, DeepSeek, or self-hosted engines. Compare cache semantics, usage fields, prefix layout risk, routing risk, and cost assumptions before recommending edits.
+- **Agent loop audit** — use for coding assistants, MCP clients, tool-using agents, compaction, mode switching, or long multi-step workflows. Always inspect stable tools, early messages, per-step prefix hashes, cache fields, output tokens, and compaction events.
+- **Deployment audit** — use for self-hosted inference, Kubernetes, Docker Compose, gateways, autoscaling, or multi-replica inference. Treat routing locality and KV budget as first-class causes, not secondary deployment details.
+- **Not worth caching** — use when the Project Context Gate fails or the evidence shows output decode, external tool latency, rate limits, or privacy isolation dominate. Say what should change instead and what evidence would reopen prompt-cache work.
+
+### Decision Summary Block
+
+Use whenever recommending project work:
+
+```text
+Measurement change:
+Prompt behavior change:
+Provider/routing change:
+Confidence:
+Do first:
+Do not do yet:
+```
+
+Prefer split decisions over a blanket "yes" when the safe next step is measurement (e.g., `Measurement change: yes`, `Prompt behavior change: pilot only after telemetry`, `Provider/routing change: no, not yet`). For "do we need to change the project?" questions, lead with `Change needed: yes`, `Change needed: no`, or `Change needed: unknown until <specific evidence>`.
+
+### Evidence-Bearing Finding
+
+Every actionable finding makes uncertainty visible:
+
+```text
+source | severity | provider/engine | issue | evidence | evidence_type | confidence | impact_condition | cache impact | safe_first_action | fix | validation | do_not_do_yet
+```
+
+Use evidence types: `confirmed from code`, `confirmed from telemetry`, `provider-doc hypothesis`, or `needs validation`. State impact as a condition ("matters if this route is hot, repeated, and has a long stable prefix") instead of asserting guaranteed savings.
+
+Compact alternative when prose around it carries evidence and uncertainty:
+
+```text
+file:line | severity | provider/engine | issue | cache impact | fix | validation
+```
+
+### Three-Bucket Result Split
+
+Keep findings organized so the user can act on them:
+
+1. **Confirmed** — supported by code / config / telemetry and applicable to the route under review.
+2. **Hypotheses** — plausible risks needing usage logs, rendered payloads, route metrics, or docs before severity rises.
+3. **Not applicable** — generic cache advice the project context rules out (rare route, no shared prefix, output-bound).
+
+When structure is the issue, include compact before / after prompt layout in the report. For a full reusable handoff, load `references/report-template.md`.
+
+### Output Language
+
+Answer in the user's language. Keep API / field names verbatim (`cached_tokens`, `cache_control`, `cachePoint`, `prompt_cache_key`, `response_format`, `TTFT`); explain meaning in their language.
+
+### Quality Bar
+
+Before sending the response:
+
+- The decision the user asked for is answered (change / no change / evidence missing).
+- Wrapper / router references take precedence over raw provider references when both apply.
+- No exact provider claims without the relevant reference loaded and the Freshness Gate cleared.
+- Cache miss, cache-write-without-read, uneconomic cache hit, decode-bound latency, rate-limit pressure, and privacy-driven isolation are distinguished — not conflated.
+- Every recommendation carries a falsifying check (prefix fingerprint diff, provider usage field, route metric, cost / latency split).
+- No cache controls / keys / routing hints proposed when the Project Context Gate ruled caching out.
+
+## Verification
+
+A fix isn't done until one of these is true:
+
+| Fix class | Pass condition |
+|---|---|
+| Prefix stability | Anchor fingerprint stable across users / timestamps / equivalent requests |
+| Provider semantics | Repeated calls show cache-read / cached-token fields climbing per the provider reference |
+| Routing | Repeated prefix families land on the intended route and cache metrics improve by route |
+| Self-hosted | Prefix-cache hit metrics rise and KV-block pressure drops under a representative workload |
+
+Recommend a CI / smoke check that renders representative prompts and fails when the cacheable prefix changes unexpectedly.
+
+The audit itself is complete when:
+
+- Each applicable anti-pattern has been classified as confirmed / hypothesis / not applicable for the routes under review.
+- Every confirmed or hypothesis finding carries an evidence type and a falsifying validation step.
+- The decision summary block answers the user's actual question, or explicitly names the missing evidence that would unlock the answer.
+- For agent audits, per-step `prefix_hash`, `tools_count`, and cache fields are accounted for on the critical trajectory.
+- For deployment audits, routing locality and KV-budget have been treated as first-class causes — not deferred to "infra".
+
+When none of these can be satisfied with the available artifacts, deliver the Quick triage contract and name the next evidence the user should produce.
+
+## Advisory Questions
+
+When no codebase is available, ask only the missing questions needed to diagnose:
+
+1. Which provider or inference engine?
+2. Is this a cost / migration, prompt / code, agent, deployment, or observability / CI audit?
+3. What artifacts are available: request code, rendered prompts, usage logs, deployment config, dashboards, evals?
+4. What are median / p95 input tokens, static prefix tokens, output tokens, and agent steps?
+5. What cache usage fields are visible in responses?
+6. Are there multiple replicas or gateways?
+7. Are tools / schemas stable across requests and agent steps?
+8. Is history append-only, compacted, or summarized?
+9. Are cache keys, salts, or routing hints per-user / per-request or shared by prefix family?
+10. What changed before the cache hit rate or TTFT regressed?
+
 ## References and Scripts
 
-- `references/openai.md`, `references/anthropic.md`, `references/bedrock.md`, `references/azure-openai.md`, `references/openrouter.md`, `references/gemini.md`, `references/deepseek.md`
-- `references/cost-model.md`, `references/mechanics.md`, `references/agent-loop.md`, `references/scenarios.md`, `references/runbook.md`, `references/report-template.md`
-- `references/antipatterns.json` — machine-readable rule catalog
-- `scripts/scan_repo.py`, `scripts/lint_request.py`, `scripts/diff_prefix.py`, `scripts/summarize_usage.py`, `scripts/roi.py`, `scripts/render_report.py`
+**Load only the reference the detected scenario needs.**
 
-_Audit Playbooks, Agent Tool Stability, Output Contract, Verification, and Advisory Questions — coming in the next pass._
+| Scenario | Reference |
+|---|---|
+| Cost, migration, output-share, TTL / write-premium | `references/cost-model.md` |
+| Prefill vs. decode, KV reuse, latency mechanics | `references/mechanics.md` |
+| Release, incident, deploy, monitoring | `references/runbook.md` |
+| OpenRouter or managed router routing / cache | `references/openrouter.md` |
+| Agents, coding assistants, MCP, dynamic tools | `references/agent-loop.md` |
+| Full role / artifact matrix when scope is unclear | `references/scenarios.md` |
+| Reusable handoff deliverable | `references/report-template.md` |
+| Machine-readable rule catalog | `references/antipatterns.json` |
+
+Provider files are in `references/anthropic.md`, `references/openai.md`, `references/bedrock.md`, `references/azure-openai.md`, `references/deepseek.md`, `references/gemini.md`. Use only the one the Provider Detection table picks.
+
+**Bundled scripts** — small, stdlib-only, no network. Explain what each reads / writes before running, choose a targeted scan when the repo is large, and ask before pointing them at secrets, env files, or production exports.
+
+| Script | Purpose |
+|---|---|
+| `scripts/scan_repo.py` | Find provider calls, cache-control hints, routing signals, self-hosted engine flags before choosing references. |
+| `scripts/lint_request.py` | Inspect rendered JSON request payloads (Chat-style `messages`, Responses-style `input`/`instructions`) for volatile early content, unsorted tools, dynamic schema fields. |
+| `scripts/diff_prefix.py` | Byte-level diff of two rendered request payloads; finds first divergent prefix location. Use `--canonical-json` only when sorted-key normalization is intentional. |
+| `scripts/summarize_usage.py` | Aggregate JSON / JSONL / CSV usage logs across OpenAI, Anthropic-compatible, Bedrock-style, OpenAI-compatible cache fields. `--jsonl-normalized` for downstream dashboards. |
+| `scripts/roi.py` | Input-only and total-cost estimates from static / dynamic / output tokens, hit rate, request count, and explicit prices. |
+| `scripts/render_report.py` | Combine usage summary and one-line findings into a Markdown or JSON audit report. |
+
+These scripts are audit aids, not provider tokenizers or billing truth — provider usage and billing exports stay authoritative.
+
+**Freshness Gate.** Provider facts (prices, cache discounts, write premiums, minimum cacheable tokens, TTLs, usage field names, model availability, cache-control semantics) drift. Before asserting any exact number, open the loaded provider reference and verify the official source. When browsing isn't available, mark the claim unverified and drop exact figures. Never copy prices or model names from articles or blog posts as current truth.

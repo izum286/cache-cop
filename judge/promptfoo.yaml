@@ -1,0 +1,31 @@
+description: cache-cop semantic eval — baseline vs with-skill, scored by llm-rubric.
+
+providers:
+  - id: anthropic:messages:claude-opus-4-7
+    config:
+      temperature: 0
+      max_tokens: 2000
+
+prompts:
+  - id: baseline
+    raw: file://prompts/baseline.txt
+  - id: with-skill
+    raw: file://prompts/with-skill.txt
+
+tests: file://datasets/semantic.csv
+
+defaultTest:
+  assert:
+    - type: llm-rubric
+      provider: anthropic:messages:claude-haiku-4-5
+      value: |
+        Original user prompt: {{prompt}}
+
+        Expected behavior (rubric): {{expected_output}}
+
+        Score the assistant's response on a 1-5 scale:
+          1 = misses the rubric entirely
+          3 = partial coverage
+          5 = covers every point with sound technical reasoning
+
+        Threshold for pass: 3. Be strict about partial matches.
